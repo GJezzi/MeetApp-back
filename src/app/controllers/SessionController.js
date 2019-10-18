@@ -1,9 +1,25 @@
+import * as Yup from 'yup';
 import jwt from 'jsonwebtoken';
+
+import auth from '../../config/auth';
 
 import User from '../models/User';
 
 class SessionController {
   async store(req, res) {
+    const schema = Yup.object().shape({
+      email: Yup.string()
+        .email()
+        .required(),
+      password: Yup.string()
+        .required()
+        .min(6),
+    });
+
+    if (!(await schema.isValid(req.body))) {
+      return res.status(400).json({ error: 'Failed Validation' });
+    }
+
     const { email, password } = req.body;
 
     const user = await User.findOne({ where: { email } });
@@ -24,8 +40,8 @@ class SessionController {
         name,
         email,
       },
-      token: jwt.sign({ id }, '6D61942FC4B1BCC0D64E393DFD0B5954', {
-        expiresIn: '7d',
+      token: jwt.sign({ id }, auth.secret, {
+        expiresIn: auth.expiresIn,
       }),
     });
   }

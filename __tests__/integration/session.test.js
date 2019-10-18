@@ -7,7 +7,7 @@ import factory from '../factories';
 
 describe('Session', () => {
   beforeEach(async () => {
-    truncate();
+    await truncate();
   });
 
   it('should return a JWT token when authenticated', async () => {
