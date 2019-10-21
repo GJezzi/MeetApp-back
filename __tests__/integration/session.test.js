@@ -1,5 +1,4 @@
 import request from 'supertest';
-import bcrypt from 'bcryptjs';
 import app from '../../src/app';
 import truncate from '../utils/truncate';
 

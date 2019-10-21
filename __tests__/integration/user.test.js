@@ -4,7 +4,6 @@ import app from '../../src/app';
 import truncate from '../utils/truncate';
 
 import factory from '../factories';
-import User from '../../src/app/models/User';
 
 describe('User', () => {
   beforeEach(async () => {
@@ -84,42 +83,58 @@ describe('User', () => {
     expect(response.status).toBe(400);
   });
 
-  it('should not be able to update when not logged in', async () => {
-    const user = await factory.attrs('User');
+  it('should not be able to register with invalid email', async () => {
+    const user = await factory.attrs('User', {
+      email: 'emailemail.com',
+    });
+
+    const response = await request(app)
+      .post('/users')
+      .send(user);
+
+    expect(response.status).toBe(400);
+  });
+
+  it('should not be able to register with password with less than 6 charactes', async () => {
+    const user = await factory.attrs('User', {
+      password: '12345',
+    });
+
+    const response = await request(app)
+      .post('/users')
+      .send(user);
+
+    expect(response.status).toBe(400);
+  });
+
+  /*
+  / UPDATE USER
+  */
+
+  it('should be possible to update the user name', async () => {
+    const user = await factory.create('User');
+
+    await request(app)
+      .post('/users')
+      .send(user);
+
+    const { body: session } = await request(app)
+      .post('/sessions')
+      .send({
+        email: user.email,
+        password: user.password,
+      });
 
     const response = await request(app)
       .put('/users')
       .send({
-        name: user.name,
-      });
+        name: 'Dummy Name',
+        password: user.password,
+      })
+      .set('Authorization', `Bearer ${session.token}`);
 
-    expect(response.status).toBe(401);
+    console.log(session.token);
+
+    expect(response.body.name).toBe('Dummy Name');
   });
-
-  // it('should be able to update name', async () => {
-  //   const user = await factory.attrs('User');
-
-  //   await request(app)
-  //     .post('/users')
-  //     .send(user);
-
-  //   const { body: sessionToken } = await request(app)
-  //     .post('/sessions')
-  //     .send({
-  //       email: user.email,
-  //       password: user.password,
-  //     });
-
-  //   const response = await request(app)
-  //     .put('/users')
-  //     .send({
-  //       name: 'Dummy',
-  //       email: user.email,
-  //     })
-  //     .set('Authorization', `Bearer${sessionToken.token}`);
-
-  //   console.log(response.body.name);
-  //   expect(response.status).toBe(200);
-  //   expect(response.body.name).toBe('Dummy');
-  // });
 });
