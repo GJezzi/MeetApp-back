@@ -57,7 +57,7 @@ class MeetupController {
     });
 
     if (!(await schema.isValid(req.body))) {
-      return res.status(400).json({ error: 'Failed Validation' });
+      return res.status(400).json({ error: 'Erro de Validação' });
     }
 
     const meetup = await Meetup.create({
@@ -69,7 +69,7 @@ class MeetupController {
 
     if (isBefore(hourStart, new Date())) {
       return res.status(400).json({
-        error: 'It is not possible to create a Meetup with a past date',
+        error: 'Não é possível criar um Meetup em uma hora passada',
       });
     }
 
@@ -86,17 +86,17 @@ class MeetupController {
     });
 
     if (!(await schema.isValid(req.body))) {
-      return res.status(400).json({ error: 'Failed Validation' });
+      return res.status(400).json({ error: 'Falha na Validação' });
     }
 
     const meetup = await Meetup.findByPk(req.params.id);
 
     if (!meetup) {
-      return res.status(400).json({ error: 'Meetup not found' });
+      return res.status(400).json({ error: 'Meetup não encontrado' });
     }
 
     if (meetup.user_id !== req.userId) {
-      return res.status(400).json({ error: 'Update unauthorized' });
+      return res.status(400).json({ error: 'Atualização não autorizada' });
     }
 
     await meetup.update(req.body);
@@ -110,11 +110,11 @@ class MeetupController {
     const meetupTime = meetup.date_time;
 
     if (meetup.user_id !== req.userId) {
-      return res.status(400).json({ error: 'Cancelling not authorized' });
+      return res.status(400).json({ error: 'Cancelamento não autorizado' });
     }
 
     if (isBefore(meetupTime, new Date())) {
-      return res.status(400).json({ error: 'Meetup cannot be canceled' });
+      return res.status(400).json({ error: 'Meetup não pode ser cancelado' });
     }
 
     meetup.canceled_at = new Date();

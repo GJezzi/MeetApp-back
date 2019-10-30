@@ -1,6 +1,11 @@
+import { startOfHour, parseISO, format } from 'date-fns';
+import pt from 'date-fns/locale/pt-BR';
+
 import Subscription from '../models/Subscription';
 import Meetup from '../models/Meetup';
 import User from '../models/User';
+
+import Notification from '../schemas/Notification';
 
 class SubscriptionController {
   async store(req, res) {
@@ -14,19 +19,18 @@ class SubscriptionController {
     });
 
     if (meetup.user_id === req.userId) {
-      return res
-        .status(400)
-        .json({ error: 'You cannot subscribe in a Meetup you created' });
+      return res.status(400).json({
+        error: 'Você não pode se inscrever em um Meetup criado por você mesmo',
+      });
     }
 
     if (!meetup) {
-      return res.status(400).json({ error: 'Meetup not found.' });
+      return res.status(400).json({ error: 'Meetup inexistente.' });
     }
 
     if (meetup.past) {
       return res.status(400).json({
-        error:
-          'It is not possible to subscript in Meetup that has already happened',
+        error: 'Não é possível se inscrever em um Meetup passado',
       });
     }
 
@@ -39,7 +43,7 @@ class SubscriptionController {
 
     if (isSubscribed) {
       return res.status(400).json({
-        error: 'You are already subscribed to this meetup',
+        error: 'Você já está inscrito neste meetup',
       });
     }
 
@@ -60,14 +64,31 @@ class SubscriptionController {
 
     if (sameTimeMeetup) {
       return res.status(400).json({
-        error:
-          'There is another Meetup you are subscribed happening on the same time',
+        error: 'Há outro meetup acontecendo no mesmo horário',
       });
     }
 
     const subscription = await Subscription.create({
       user_id: req.userId,
       meetup_id: meetup.id,
+    });
+
+    const user = await User.findByPk(req.userId);
+    // const hourStart = startOfHour(parseISO(req.body.date_time));
+    // const formattedDate = format(
+    //   hourStart,
+    //   "'dia' dd 'de' MMMM', às H:mm'hrs'",
+    //   { locale: pt }
+    // );
+
+    await Notification.create({
+      content: `${user.name} se inscreveu para o meetup ${meetup.title}. `,
+      user: meetup.user_id,
+    });
+
+    await Notification.create({
+      content: `Prezado ${user.name}, você se inscreveu para o meetup ${meetup.title}`,
+      user: req.userId,
     });
 
     return res.json(subscription);
