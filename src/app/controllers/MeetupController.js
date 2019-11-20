@@ -1,16 +1,13 @@
-import * as Yup from 'yup';
-import {
-  startOfHour,
-  parseISO,
-  isBefore,
-  startOfDay,
-  endOfDay,
-} from 'date-fns';
+import { parseISO, startOfDay, endOfDay } from 'date-fns';
 import { Op } from 'sequelize';
 
 import Meetup from '../models/Meetup';
 import User from '../models/User';
 import File from '../models/File';
+
+import CreateMeetupService from '../services/CreateMeetupService';
+import UpdateMeetupService from '../services/UpdateMeetupService';
+import DeleteMeetupService from '../services/DeleteMeetupService';
 
 class MeetupController {
   async index(req, res) {
@@ -48,80 +45,29 @@ class MeetupController {
   }
 
   async store(req, res) {
-    const schema = Yup.object().shape({
-      title: Yup.string().required(),
-      desc: Yup.string().required(),
-      location: Yup.string().required(),
-      date_time: Yup.date().required(),
-      banner_id: Yup.number().required(),
-    });
-
-    if (!(await schema.isValid(req.body))) {
-      return res.status(400).json({ error: 'Erro de Validação' });
-    }
-
-    const meetup = await Meetup.create({
-      ...req.body,
+    const meetup = await CreateMeetupService.run({
+      body: req.body,
       user_id: req.userId,
     });
-
-    const hourStart = startOfHour(parseISO(req.body.date_time));
-
-    if (isBefore(hourStart, new Date())) {
-      return res.status(400).json({
-        error: 'Não é possível criar um Meetup em uma hora passada',
-      });
-    }
 
     return res.json(meetup);
   }
 
   async update(req, res) {
-    const schema = Yup.object().shape({
-      title: Yup.string(),
-      desc: Yup.string(),
-      location: Yup.string(),
-      date_time: Yup.date(),
-      banner_id: Yup.number(),
+    const meetup = await UpdateMeetupService.run({
+      user_id: req.userId,
+      body: req.body,
+      meetup_id: req.params.id,
     });
-
-    if (!(await schema.isValid(req.body))) {
-      return res.status(400).json({ error: 'Falha na Validação' });
-    }
-
-    const meetup = await Meetup.findByPk(req.params.id);
-
-    if (!meetup) {
-      return res.status(400).json({ error: 'Meetup não encontrado' });
-    }
-
-    if (meetup.user_id !== req.userId) {
-      return res.status(400).json({ error: 'Atualização não autorizada' });
-    }
-
-    await meetup.update(req.body);
 
     return res.json(meetup);
   }
 
   async delete(req, res) {
-    const meetup = await Meetup.findByPk(req.params.id);
-
-    const meetupTime = meetup.date_time;
-
-    if (meetup.user_id !== req.userId) {
-      return res.status(400).json({ error: 'Cancelamento não autorizado' });
-    }
-
-    if (isBefore(meetupTime, new Date())) {
-      return res.status(400).json({ error: 'Meetup não pode ser cancelado' });
-    }
-
-    meetup.canceled_at = new Date();
-
-    await meetup.save();
-
-    await meetup.destroy();
+    await DeleteMeetupService.run({
+      meetup_id: req.params.id,
+      user_id: req.userId,
+    });
 
     return res.send();
   }
